@@ -1,6 +1,6 @@
 package main
 
-import "../binslib/gfx"
+import "../binslib/draw"
 import "../binslib/wnd"
 import "core:fmt"
 import "core:mem"
@@ -33,12 +33,12 @@ main :: proc() {
 	wnd.init(u32(window_size.x), u32(window_size.y), "Binslib Test Program")
 	defer wnd.deinit()
 
-	gfx.init()
-	defer gfx.deinit()
+	draw.init()
+	defer draw.deinit()
 
 	for !wnd.wants_close() {
 		wnd.poll()
-		gfx.begin_frame()
-		gfx.end_frame()
+		draw.begin_frame()
+		draw.end_frame()
 	}
 }
