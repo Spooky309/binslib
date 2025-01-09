@@ -6,6 +6,8 @@ import "../binslib/wnd"
 import "core:log"
 import "core:mem"
 
+test_sound_file :: #load("assets/audio_test_vorbis.ogg", []byte)
+
 main :: proc() {
 	context.logger = log.create_console_logger()
 
@@ -16,15 +18,15 @@ main :: proc() {
 
 		defer {
 			if len(track.allocation_map) > 0 {
-				log.errorf("=== %v allocations not freed: ===\n", len(track.allocation_map))
+				log.errorf("=== %v allocations not freed: ===", len(track.allocation_map))
 				for _, entry in track.allocation_map {
-					log.errorf("- %v bytes @ %v\n", entry.size, entry.location)
+					log.errorf("- %v bytes @ %v", entry.size, entry.location)
 				}
 			}
 			if len(track.bad_free_array) > 0 {
-				log.errorf("=== %v incorrect frees: ===\n", len(track.bad_free_array))
+				log.errorf("=== %v incorrect frees: ===", len(track.bad_free_array))
 				for entry in track.bad_free_array {
-					log.errorf("- %p @ %v\n", entry.memory, entry.location)
+					log.errorf("- %p @ %v", entry.memory, entry.location)
 				}
 			}
 			mem.tracking_allocator_destroy(&track)
@@ -41,6 +43,9 @@ main :: proc() {
 
 	snd.init()
 	defer snd.deinit()
+
+	sound := snd.load_sound_resource_from_memory(test_sound_file, .OGG)
+	snd.play(sound)
 
 	for !wnd.wants_close() {
 		wnd.poll()
