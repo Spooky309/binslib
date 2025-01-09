@@ -10,6 +10,11 @@ get_opengl_proc_address :: glfw.gl_set_proc_address
 @(private)
 init_if_necessary :: proc() {
 	if !initd {
+		when ODIN_OS == .Linux {
+			// 1. KDE wayland forgets what my main monitor is
+			// 2. qrenderdoc doesn't support wayland
+			glfw.InitHint(glfw.PLATFORM, glfw.PLATFORM_X11)
+		}
 		glfw.Init()
 		initd = true
 	}
@@ -18,6 +23,7 @@ init_if_necessary :: proc() {
 init :: proc(width: u32, height: u32, name: string) {
 	init_if_necessary()
 	cstrtitle := strings.clone_to_cstring(name, context.temp_allocator)
+
 	glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
 	glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
 	glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
