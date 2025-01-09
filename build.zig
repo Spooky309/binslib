@@ -75,6 +75,11 @@ pub fn build(b: *std.Build) void {
         .root = b.path("ext/glfw/src"),
     });
 
+    binslib_module.addCSourceFile(.{
+        .file = b.path("ext/glad/glad.c"),
+        .flags = &.{},
+    });
+
     const glfw_module = b.addTranslateC(.{
         .link_libc = true,
         .optimize = optimize,
@@ -82,7 +87,14 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("ext/glfw/include/GLFW/glfw3.h"),
     });
 
+    const glad_module = b.addTranslateC(.{
+        .optimize = optimize,
+        .target = target,
+        .root_source_file = b.path("ext/glad/glad.h"),
+    });
+
     binslib_module.addImport("glfw", glfw_module.createModule());
+    binslib_module.addImport("gl", glad_module.createModule());
 
     if (target.result.os.tag == .macos) {
         binslib_module.linkFramework("Foundation", .{ .needed = true });
