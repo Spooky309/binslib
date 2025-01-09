@@ -1,7 +1,7 @@
 package gl33
 
 import "../../wnd"
-import "core:fmt"
+import "core:log"
 import gl "vendor:OpenGL"
 
 init :: proc() {
@@ -10,11 +10,8 @@ init :: proc() {
 	max_3d_texture_size: i32 = ---
 	gl.GetIntegerv(gl.MAX_TEXTURE_SIZE, &max_texture_size)
 	gl.GetIntegerv(gl.MAX_3D_TEXTURE_SIZE, &max_3d_texture_size)
-	fmt.printf(
-		"max texture size: %v\nmax 3d texture size: %v\n",
-		max_texture_size,
-		max_3d_texture_size,
-	)
+	log.infof("max texture size: %v", max_texture_size)
+	log.infof("max 3d texture size: %v", max_3d_texture_size)
 }
 
 deinit :: proc() {
