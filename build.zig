@@ -89,7 +89,7 @@ pub fn build(b: *std.Build) void {
         binslib_module.linkFramework("IOKit", .{ .needed = true });
         binslib_module.linkFramework("Cocoa", .{ .needed = true });
         binslib_module.linkFramework("CoreAudio", .{ .needed = true });
-        binslib_module.linkFramework("CoreAnimation", .{ .needed = true });
+        binslib_module.linkFramework("QuartzCore", .{ .needed = true });
         binslib_module.linkFramework("OpenGL", .{ .needed = true });
     }
 
