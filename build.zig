@@ -67,6 +67,7 @@ pub fn build(b: *std.Build) void {
                 "cocoa_window.m",
                 "nsgl_context.m",
                 "egl_context.c",
+                "osmesa_context.c",
             },
             else => @panic("unsupported target (for now)"),
         },
