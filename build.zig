@@ -10,7 +10,78 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const build_examples = b.option(bool, "build_examples", "Build the examples") orelse false;
+    const glfw_flags: []const []const u8 = switch (target.result.os.tag) {
+        .linux => &.{
+            "-D_GLFW_X11",
+        },
+        .macos => &.{
+            "-D_GLFW_COCOA",
+        },
+        else => @panic("unsupported target (for now)"),
+    };
+
+    binslib_module.addCSourceFiles(.{
+        .files = &.{
+            "context.c",
+            "init.c",
+            "input.c",
+            "monitor.c",
+            "platform.c",
+            "vulkan.c",
+            "window.c",
+            "null_init.c",
+            "null_joystick.c",
+            "null_monitor.c",
+            "null_window.c",
+        },
+        .flags = glfw_flags,
+        .root = b.path("ext/glfw/src"),
+    });
+    binslib_module.link_libc = true;
+
+    binslib_module.addCSourceFiles(.{
+        .files = switch (target.result.os.tag) {
+            .linux => &.{
+                "egl_context.c",
+                "glx_context.c",
+                "linux_joystick.c",
+                "osmesa_context.c",
+                "posix_module.c",
+                "posix_poll.c",
+                "posix_thread.c",
+                "posix_time.c",
+                "x11_init.c",
+                "x11_monitor.c",
+                "x11_window.c",
+                "xkb_unicode.c",
+            },
+            .macos => &.{
+                "posix_module.c",
+                "posix_poll.c",
+                "posix_thread.c",
+                "posix_time.c",
+                "cocoa_init.m",
+                "cocoa_joystick.m",
+                "cocoa_monitor.m",
+                "cocoa_time.c",
+                "cocoa_window.m",
+            },
+            else => @panic("unsupported target (for now)"),
+        },
+        .flags = glfw_flags,
+        .root = b.path("ext/glfw/src"),
+    });
+
+    const glfw_module = b.addTranslateC(.{
+        .link_libc = true,
+        .optimize = optimize,
+        .target = target,
+        .root_source_file = b.path("ext/glfw/include/GLFW/glfw3.h"),
+    });
+
+    binslib_module.addImport("glfw", glfw_module.createModule());
+
+    const build_examples = b.option(bool, "build_examples", "Build the examples") orelse true;
 
     if (build_examples) {
         const spooks_test_program = b.addExecutable(.{
