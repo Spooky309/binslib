@@ -89,6 +89,8 @@ pub fn build(b: *std.Build) void {
         binslib_module.linkFramework("IOKit", .{ .needed = true });
         binslib_module.linkFramework("Cocoa", .{ .needed = true });
         binslib_module.linkFramework("CoreAudio", .{ .needed = true });
+        binslib_module.linkFramework("CoreAnimation", .{ .needed = true });
+        binslib_module.linkFramework("OpenGL", .{ .needed = true });
     }
 
     const build_examples = b.option(bool, "build_examples", "Build the examples") orelse true;
