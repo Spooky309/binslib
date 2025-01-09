@@ -65,6 +65,7 @@ pub fn build(b: *std.Build) void {
                 "cocoa_monitor.m",
                 "cocoa_time.c",
                 "cocoa_window.m",
+                "nsgl_context.m",
                 "egl_context.c",
             },
             else => @panic("unsupported target (for now)"),
@@ -83,6 +84,7 @@ pub fn build(b: *std.Build) void {
     binslib_module.addImport("glfw", glfw_module.createModule());
 
     if (target.result.os.tag == .macos) {
+        binslib_module.linkFramework("Foundation", .{ .needed = true });
         binslib_module.linkFramework("Cocoa", .{ .needed = true });
     }
 
