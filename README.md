@@ -8,7 +8,7 @@ win32 support is as easy as adding an extra case prong but again, i can't be ars
 
 maintained by spooky309 (kole) and gonzo.
 
-TO ADD A NEW EXAMPLES
+TO ADD A NEW EXAMPLE
 
 * make a new directory in examples, no spaces in the name!
 * in there, make a main.zig file
