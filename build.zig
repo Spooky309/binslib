@@ -86,6 +86,11 @@ pub fn build(b: *std.Build) void {
         .flags = &.{},
     });
 
+    binslib_library.addCSourceFile(.{
+        .file = b.path("ext/miniaudio/miniaudio.c"),
+        .flags = &.{},
+    });
+
     const glfw_module = b.addTranslateC(.{
         .link_libc = true,
         .optimize = optimize,
@@ -105,15 +110,24 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("ext/stb/stbi_with_config.h"),
     });
 
+    const miniaudio_module = b.addTranslateC(.{
+        .optimize = optimize,
+        .target = target,
+        .root_source_file = b.path("ext/miniaudio/ma_with_config.h"),
+    });
+
     binslib_library.root_module.addImport("glfw", glfw_module.createModule());
     binslib_library.root_module.addImport("gl", glad_module.createModule());
     binslib_library.root_module.addImport("stbi", stb_image_module.createModule());
+    binslib_library.root_module.addImport("miniaudio", miniaudio_module.createModule());
 
     if (target.result.os.tag == .macos) {
         binslib_library.linkFramework("Foundation");
         binslib_library.linkFramework("IOKit");
         binslib_library.linkFramework("Cocoa");
         binslib_library.linkFramework("CoreAudio");
+        binslib_library.linkFramework("CoreFoundation");
+        binslib_library.linkFramework("AudioToolbox");
         binslib_library.linkFramework("QuartzCore");
         binslib_library.linkFramework("OpenGL");
     }
