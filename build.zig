@@ -4,11 +4,13 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const binslib_module = b.addModule("binslib", .{
+    const binslib_library = b.addStaticLibrary(.{
+        .name = "binslib",
         .root_source_file = b.path("binslib/root.zig"),
         .target = target,
         .optimize = optimize,
     });
+    binslib_library.linkLibC();
 
     const glfw_flags: []const []const u8 = switch (target.result.os.tag) {
         .linux => &.{
@@ -20,7 +22,7 @@ pub fn build(b: *std.Build) void {
         else => @panic("unsupported target (for now)"),
     };
 
-    binslib_module.addCSourceFiles(.{
+    binslib_library.addCSourceFiles(.{
         .files = &.{
             "context.c",
             "init.c",
@@ -37,9 +39,8 @@ pub fn build(b: *std.Build) void {
         .flags = glfw_flags,
         .root = b.path("ext/glfw/src"),
     });
-    binslib_module.link_libc = true;
 
-    binslib_module.addCSourceFiles(.{
+    binslib_library.addCSourceFiles(.{
         .files = switch (target.result.os.tag) {
             .linux => &.{
                 "egl_context.c",
@@ -75,7 +76,7 @@ pub fn build(b: *std.Build) void {
         .root = b.path("ext/glfw/src"),
     });
 
-    binslib_module.addCSourceFile(.{
+    binslib_library.addCSourceFile(.{
         .file = b.path("ext/glad/glad.c"),
         .flags = &.{},
     });
@@ -93,17 +94,24 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("ext/glad/glad.h"),
     });
 
-    binslib_module.addImport("glfw", glfw_module.createModule());
-    binslib_module.addImport("gl", glad_module.createModule());
+    binslib_library.root_module.addImport("glfw", glfw_module.createModule());
+    binslib_library.root_module.addImport("gl", glad_module.createModule());
 
     if (target.result.os.tag == .macos) {
-        binslib_module.linkFramework("Foundation", .{ .needed = true });
-        binslib_module.linkFramework("IOKit", .{ .needed = true });
-        binslib_module.linkFramework("Cocoa", .{ .needed = true });
-        binslib_module.linkFramework("CoreAudio", .{ .needed = true });
-        binslib_module.linkFramework("QuartzCore", .{ .needed = true });
-        binslib_module.linkFramework("OpenGL", .{ .needed = true });
+        binslib_library.linkFramework("Foundation");
+        binslib_library.linkFramework("IOKit");
+        binslib_library.linkFramework("Cocoa");
+        binslib_library.linkFramework("CoreAudio");
+        binslib_library.linkFramework("QuartzCore");
+        binslib_library.linkFramework("OpenGL");
     }
+
+    b.installArtifact(binslib_library);
+
+    // put the module into the global modules list so things depending on this can get it
+    //   we have to do it this way because we need to install the library itself
+    //   so the lsp works properly with the c imported libraries.
+    b.modules.put(b.dupe("binslib"), &binslib_library.root_module) catch @panic("can't add library to modules");
 
     const build_examples = b.option(bool, "build_examples", "Build the examples") orelse true;
 
@@ -115,7 +123,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         });
 
-        spooks_test_program.root_module.addImport("binslib", binslib_module);
+        spooks_test_program.root_module.addImport("binslib", &binslib_library.root_module);
 
         b.installArtifact(spooks_test_program);
     }
