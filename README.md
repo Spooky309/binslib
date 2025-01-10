@@ -7,3 +7,9 @@ i'll add wayland support when i feel like it. it's a pain in the arse and it doe
 win32 support is as easy as adding an extra case prong but again, i can't be arsed.
 
 maintained by spooky309 (kole) and gonzo.
+
+TO ADD A NEW EXAMPLES
+
+* make a new directory in examples, no spaces in the name!
+* in there, make a main.zig file
+* now it'll appear in the zig-out/bin directory when you build.

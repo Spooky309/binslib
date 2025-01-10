@@ -116,16 +116,7 @@ pub fn build(b: *std.Build) void {
     const build_examples = b.option(bool, "build_examples", "Build the examples") orelse true;
 
     if (build_examples) {
-        const spooks_test_program = b.addExecutable(.{
-            .name = "spooks_test_program",
-            .root_source_file = b.path("examples/spooks_test_program/main.zig"),
-            .target = target,
-            .optimize = optimize,
-        });
-
-        spooks_test_program.root_module.addImport("binslib", &binslib_library.root_module);
-
-        b.installArtifact(spooks_test_program);
+        addExamples(b, target, optimize, &binslib_library.root_module) catch @panic("Error adding examples.");
     }
 
     const lib_unit_tests = b.addTest(.{
@@ -137,4 +128,27 @@ pub fn build(b: *std.Build) void {
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
+}
+
+fn addExamples(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, binslib_module: *std.Build.Module) !void {
+    std.log.info("Examples will build...", .{});
+    var examples_dir = try std.fs.cwd().openDir("examples", .{ .iterate = true });
+    defer examples_dir.close();
+
+    var iterator = examples_dir.iterate();
+
+    while (try iterator.next()) |f| {
+        std.log.info("Adding example \"{s}\"", .{f.name});
+        const source_path = try std.fs.path.join(b.allocator, &.{ "examples", f.name, "main.zig" });
+        defer b.allocator.free(source_path);
+
+        const prog = b.addExecutable(.{
+            .name = f.name,
+            .root_source_file = b.path(source_path),
+            .target = target,
+            .optimize = optimize,
+        });
+        prog.root_module.addImport("binslib", binslib_module);
+        b.installArtifact(prog);
+    }
 }
