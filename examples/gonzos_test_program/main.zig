@@ -9,8 +9,13 @@ pub fn main() !void {
 
     try wnd.init(800, 600, "binslib");
     defer wnd.deinit();
+
     try draw.init();
     defer draw.deinit();
+    
+    var image = try draw.load_image("../../examples/gonzos_test_program/res/test.png", gpa.allocator());
+    defer draw.unload_image(&image);
+    
     while (!wnd.wants_close()) {
         wnd.pump();
         draw.begin_frame();
