@@ -12,8 +12,8 @@ pub fn main() !void {
     defer snd.deinit();
     try wnd.init(800, 600, "binslib");
     defer wnd.deinit();
-    try draw.init();
-    defer draw.deinit();
+    try draw.init(gpa.allocator());
+    defer draw.deinit(gpa.allocator());
     while (!wnd.wants_close()) {
         wnd.pump();
         draw.begin_frame();

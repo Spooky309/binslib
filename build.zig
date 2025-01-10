@@ -164,6 +164,10 @@ fn addExamples(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bu
     var iterator = examples_dir.iterate();
 
     while (try iterator.next()) |f| {
+        if (f.kind != .directory) {
+            continue;
+        }
+
         std.log.info("Adding example \"{s}\"", .{f.name});
         const source_path = try std.fs.path.join(b.allocator, &.{ "examples", f.name, "main.zig" });
         defer b.allocator.free(source_path);
