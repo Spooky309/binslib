@@ -18,7 +18,15 @@ pub fn main() !void {
     defer draw.deinit(gpa.allocator());
 
     const audio_file = try snd.decode(gpa.allocator(), audio_test_file);
-    try snd.play(audio_file);
+    var output_node = snd.Output(snd.Gain(snd.ResourceSource)){
+        .input = .{
+            .input = .{
+                .res = audio_file,
+            },
+            .gain = -10,
+        },
+    };
+    try snd.play(&output_node);
 
     while (!wnd.wants_close()) {
         wnd.pump();
