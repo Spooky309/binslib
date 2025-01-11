@@ -87,6 +87,11 @@ pub fn build(b: *std.Build) void {
     });
 
     binslib_library.addCSourceFile(.{
+        .file = b.path("ext/stb/stb_truetype.c"),
+        .flags = &.{},
+    });
+
+    binslib_library.addCSourceFile(.{
         .file = b.path("ext/miniaudio/miniaudio.c"),
         .flags = &.{},
     });
@@ -110,6 +115,12 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("ext/stb/stbi_with_config.h"),
     });
 
+    const stb_truetype_module = b.addTranslateC(.{
+        .optimize = optimize,
+        .target = target,
+        .root_source_file = b.path("ext/stb/stbtt_with_stbrp.h"),
+    });
+
     const miniaudio_module = b.addTranslateC(.{
         .optimize = optimize,
         .target = target,
@@ -119,6 +130,7 @@ pub fn build(b: *std.Build) void {
     binslib_library.root_module.addImport("glfw", glfw_module.createModule());
     binslib_library.root_module.addImport("gl", glad_module.createModule());
     binslib_library.root_module.addImport("stbi", stb_image_module.createModule());
+    binslib_library.root_module.addImport("stbtt", stb_truetype_module.createModule());
     binslib_library.root_module.addImport("miniaudio", miniaudio_module.createModule());
 
     if (target.result.os.tag == .macos) {

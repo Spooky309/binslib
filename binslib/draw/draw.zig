@@ -2,6 +2,7 @@ const std = @import("std");
 const wnd = @import("../wnd/wnd.zig");
 const gl = @import("gl");
 const stbi = @import("stbi");
+const stbtt = @import("stbtt"); // Also includes stb_rect_pack!
 
 const vertex_shader_code: [:0]const u8 =
 \\#version 330 core
@@ -135,6 +136,12 @@ pub fn init(allocator: std.mem.Allocator) !void {
 
     gl.glDeleteShader(vertex_shader);
     gl.glDeleteShader(fragment_shader);
+
+    const rp_nodes: []stbtt.stbrp_node = try allocator.alloc(stbtt.stbrp_node, 2048);
+    defer allocator.free(rp_nodes);
+
+    var rp_context: stbtt.stbrp_context = undefined;
+    stbtt.stbrp_init_target(&rp_context, 2048, 2048, rp_nodes.ptr, @intCast(rp_nodes.len));
 }
 
 pub fn deinit(allocator: std.mem.Allocator) void {
