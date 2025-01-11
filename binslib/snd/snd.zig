@@ -11,9 +11,11 @@ pub const Resource = struct {
     frames: []f32,
 };
 
+pub const SAMPLE_RATE = 44100;
+
 pub fn init(gpa: std.mem.Allocator) !void {
     var config = ma.ma_device_config_init(ma.ma_device_type_playback);
-    config.sampleRate = 44000;
+    config.sampleRate = SAMPLE_RATE;
     config.playback.channels = 2;
     config.playback.format = ma.ma_format_f32;
     config.dataCallback = data_callback;
@@ -30,7 +32,7 @@ pub fn deinit() void {}
 
 pub fn decode(gpa: std.mem.Allocator, data: []const u8) !Resource {
     var frame_count: u64 = 0;
-    var config = ma.ma_decoder_config_init(ma.ma_format_f32, 2, 44000);
+    var config = ma.ma_decoder_config_init(ma.ma_format_f32, 2, SAMPLE_RATE);
     var frames: ?*anyopaque = null;
     if (ma.ma_decode_memory(data.ptr, data.len, &config, &frame_count, &frames) != ma.MA_SUCCESS) {
         return error.MiniAudioDecodeFailed;
