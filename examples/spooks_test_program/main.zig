@@ -25,8 +25,10 @@ pub fn main() !void {
             },
             .gain = -10,
         },
+        .loop = true,
     };
-    try snd.play(&output_node);
+    try snd.add_output_node(&output_node);
+    output_node.play();
 
     while (!wnd.wants_close()) {
         wnd.pump();
