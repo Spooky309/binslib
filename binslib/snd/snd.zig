@@ -14,12 +14,31 @@ pub const Resource = struct {
 pub fn Output(comptime InputNodeType: type) type {
     return struct {
         input: InputNodeType,
+        playing: bool = false,
+        loop: bool = false,
         fn resolve(self_erased: *anyopaque) [2]f32 {
             const self: *@This() = @ptrCast(@alignCast(self_erased));
-            if (@TypeOf(InputNodeType) == void) {
+            if (!self.playing or @TypeOf(InputNodeType) == void) {
                 return .{ 0, 0 };
             }
-            return self.input.resolve();
+            const samples = self.input.resolve();
+            if (self.input.stopped()) {
+                if (self.loop) {
+                    self.reset();
+                } else {
+                    self.playing = false;
+                }
+            }
+            return samples;
+        }
+        pub fn play(self: *@This()) void {
+            self.playing = true;
+        }
+        pub fn reset(self: *@This()) void {
+            self.input.reset();
+        }
+        pub fn stopped(self: @This()) bool {
+            return !self.playing;
         }
     };
 }
@@ -35,8 +54,14 @@ pub const ResourceSource = struct {
             self.res.frames[self.current_frame],
             self.res.frames[self.current_frame + 1],
         };
-        self.current_frame += 2;
+        _ = @atomicRmw(usize, &self.current_frame, .Add, 2, .seq_cst);
         return samples;
+    }
+    fn reset(self: *@This()) void {
+        @atomicStore(usize, &self.current_frame, 0, .seq_cst);
+    }
+    fn stopped(self: @This()) bool {
+        return self.current_frame >= self.res.frames.len;
     }
 };
 
@@ -55,6 +80,12 @@ pub fn Gain(comptime InputNodeType: type) type {
                 samples[0] * coef,
                 samples[1] * coef,
             };
+        }
+        fn reset(self: *@This()) void {
+            self.input.reset();
+        }
+        fn stopped(self: @This()) bool {
+            return self.input.stopped();
         }
     };
 }
@@ -96,7 +127,7 @@ pub fn decode(gpa: std.mem.Allocator, data: []const u8) !Resource {
     };
 }
 
-pub fn play(node: anytype) !void {
+pub fn add_output_node(node: anytype) !void {
     lock.lock();
     try playing_sounds.append(.{
         .resolve_func = &@TypeOf(node.*).resolve,
