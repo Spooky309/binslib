@@ -44,7 +44,7 @@ pub fn main() !void {
 
         const sintime = @sin(t / 500);
         const costime = @cos(t / 500);
-        const distance = 1;
+        const distance = 1; // This can vary but who cares
 
         output_node.input.vector[0] = sintime * distance;
         output_node.input.vector[1] = costime * distance;
