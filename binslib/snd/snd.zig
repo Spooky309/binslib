@@ -16,12 +16,14 @@ pub fn Output(comptime InputNodeType: type) type {
         input: InputNodeType,
         playing: bool = false,
         loop: bool = false,
-        fn resolve(self_erased: *anyopaque) [2]f32 {
+        fn resolve(self_erased: *anyopaque, out: []f32) void {
             const self: *@This() = @ptrCast(@alignCast(self_erased));
             if (!self.playing or @TypeOf(InputNodeType) == void) {
-                return .{ 0, 0 };
+                return;
             }
-            const samples = self.input.resolve();
+            for (0..out.len / 2) |idx| {
+                out[idx * 2], out[idx * 2 + 1] = self.input.resolve();
+            }
             if (self.input.stopped()) {
                 if (self.loop) {
                     self.reset();
@@ -29,7 +31,6 @@ pub fn Output(comptime InputNodeType: type) type {
                     self.playing = false;
                 }
             }
-            return samples;
         }
         pub fn play(self: *@This()) void {
             self.playing = true;
@@ -64,6 +65,53 @@ pub const ResourceSource = struct {
         return self.current_frame >= self.res.frames.len;
     }
 };
+
+pub const NullSource = struct {
+    fn resolve(_: *@This()) [2]f32 {
+        return .{ 0, 0 };
+    }
+    fn reset(_: *@This()) void {}
+    fn stopped(_: @This()) bool {
+        return false;
+    }
+};
+
+pub fn Spatialize(comptime InputNodeType: type) type {
+    return struct {
+        input: InputNodeType,
+        vector: @Vector(3, f32) = .{ 0, 0, 0 },
+        fn resolve(self: *@This()) [2]f32 {
+            if (@TypeOf(InputNodeType) == void) {
+                return .{ 0, 0 };
+            }
+            const samples = self.input.resolve();
+
+            const mixdown = (samples[0] + samples[1]) / 2;
+            // TODO: When gonzo merges his math library, use Vector2.magnitude (or whatever) instead.
+            const distance = @sqrt(self.vector[0] * self.vector[0] + self.vector[1] * self.vector[1] + self.vector[2] * self.vector[2]);
+            var mixdown_with_falloff = if (distance == 0) mixdown else mixdown / (4 * std.math.pi * distance);
+            // Don't let it get any louder than the actual sample
+            if (@abs(mixdown_with_falloff) > @abs(mixdown)) {
+                mixdown_with_falloff = mixdown;
+            }
+            const radius = 1;
+            const pan = std.math.clamp(self.vector[0], -radius, radius) / radius;
+            const pan_right = (pan + 1) / 2;
+            const pan_left = (1 - pan) / 2;
+
+            return .{
+                mixdown_with_falloff * pan_left,
+                mixdown_with_falloff * pan_right,
+            };
+        }
+        fn reset(self: *@This()) void {
+            self.input.reset();
+        }
+        fn stopped(self: @This()) bool {
+            return self.input.stopped();
+        }
+    };
+}
 
 pub fn Gain(comptime InputNodeType: type) type {
     return struct {
@@ -137,7 +185,7 @@ pub fn add_output_node(node: anytype) !void {
 }
 
 const Graph = struct {
-    resolve_func: *const fn (self: *anyopaque) [2]f32,
+    resolve_func: *const fn (self: *anyopaque, out: []f32) void,
     ptr: *anyopaque,
 };
 
@@ -148,9 +196,7 @@ fn data_callback(_: ?*anyopaque, out: ?*anyopaque, _: ?*const anyopaque, frame_c
 
     lock.lock();
     for (playing_sounds.items) |*item| {
-        for (0..frame_count) |sample| {
-            out_floats[sample * CHANNEL_COUNT], out_floats[sample * CHANNEL_COUNT + 1] = item.resolve_func(item.ptr);
-        }
+        item.resolve_func(item.ptr, out_floats);
     }
     lock.unlock();
 }

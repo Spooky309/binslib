@@ -18,22 +18,36 @@ pub fn main() !void {
     defer draw.deinit(gpa.allocator());
 
     const audio_file = try snd.decode(gpa.allocator(), audio_test_file);
-    var output_node = snd.Output(snd.Gain(snd.ResourceSource)){
+    var output_node = snd.Output(snd.Spatialize(snd.ResourceSource)){
         .input = .{
             .input = .{
                 .res = audio_file,
             },
-            .gain = -10,
         },
         .loop = true,
     };
     try snd.add_output_node(&output_node);
     output_node.play();
 
+    var t: f32 = 0;
+    var last_time = std.time.milliTimestamp();
+
     while (!wnd.wants_close()) {
         wnd.pump();
         draw.begin_frame();
         draw.end_frame();
+
+        const current_time = std.time.milliTimestamp();
+        const delta = current_time - last_time;
+        last_time = current_time;
+        t += @floatFromInt(delta);
+
+        const sintime = @sin(t / 500);
+        const costime = @cos(t / 500);
+        const distance = 1; // This can vary but who cares
+
+        output_node.input.vector[0] = sintime * distance;
+        output_node.input.vector[1] = costime * distance;
 
         // We don't care if this fails.
         _ = temp_allocator.reset(.retain_capacity);
