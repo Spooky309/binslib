@@ -180,9 +180,11 @@ fn addExamples(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bu
             continue;
         }
 
-        std.log.info("Adding example \"{s}\"", .{f.name});
         const source_path = try std.fs.path.join(b.allocator, &.{ "examples", f.name, "main.zig" });
-        defer b.allocator.free(source_path);
+        const respath = try std.fs.path.join(b.allocator, &.{ "examples", f.name, "res" });
+        const resdestsubdir = try std.fs.path.join(b.allocator, &.{ f.name, "res" });
+
+        std.log.info("Adding example \"{s}\"", .{f.name});
 
         const prog = b.addExecutable(.{
             .name = f.name,
@@ -191,6 +193,20 @@ fn addExamples(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bu
             .optimize = optimize,
         });
         prog.root_module.addImport("binslib", binslib_module);
-        b.installArtifact(prog);
+
+        const example_install_step = b.addInstallArtifact(prog, .{
+            // BEWARE: this INCLUDES the name of the executable itself!
+            .dest_sub_path = b.fmt("{s}/{s}", .{ f.name, f.name }),
+        });
+        b.getInstallStep().dependOn(&example_install_step.step);
+
+        std.fs.cwd().access(respath, .{}) catch {
+            continue;
+        };
+        b.installDirectory(.{
+            .source_dir = b.path(respath),
+            .install_dir = .bin,
+            .install_subdir = resdestsubdir,
+        });
     }
 }
