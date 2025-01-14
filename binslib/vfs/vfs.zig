@@ -15,32 +15,30 @@ pub fn init(gpa: std.mem.Allocator) !void {
 
 pub fn deinit() void {}
 
-pub fn mount_directory(gpa: std.mem.Allocator, dir: []const u8) !void {
-    const exe_path = try std.fs.selfExeDirPathAlloc(gpa);
-    defer gpa.free(exe_path);
+pub fn mount_directory(dir: []const u8) !void {
+    const exe_path = try std.fs.selfExeDirPathAlloc(file_map.allocator);
+    defer file_map.allocator.free(exe_path);
 
-    const dir_path = try std.fs.path.join(gpa, &.{ exe_path, dir });
-    defer gpa.free(dir_path);
+    const dir_path = try std.fs.path.join(file_map.allocator, &.{ exe_path, dir });
+    defer file_map.allocator.free(dir_path);
 
     var open_dir = try std.fs.openDirAbsolute(dir_path, .{ .iterate = true, .access_sub_paths = true });
     defer open_dir.close();
-    var walker = try open_dir.walk(gpa);
+    var walker = try open_dir.walk(file_map.allocator);
     defer walker.deinit();
 
     while (try walker.next()) |f| {
         if (f.kind == .file) {
-            const file_full_path = try std.fs.path.join(gpa, &.{ dir_path, f.path });
+            const file_full_path = try std.fs.path.join(file_map.allocator, &.{ dir_path, f.path });
 
             const virtual_path = if (std.mem.lastIndexOf(u8, f.path, ".")) |idx|
-                try gpa.dupe(u8, f.path[0..idx])
+                try file_map.allocator.dupe(u8, f.path[0..idx])
             else
-                try gpa.dupe(u8, f.path);
-
-            std.log.info("{s}", .{virtual_path});
+                try file_map.allocator.dupe(u8, f.path);
 
             try file_map.put(virtual_path, .{
                 .virtual_path = virtual_path,
-                .extension = try gpa.dupe(u8, std.fs.path.extension(f.path)),
+                .extension = try file_map.allocator.dupe(u8, std.fs.path.extension(f.path)),
                 .file = .{ .LooseFile = .{ .real_path = file_full_path } },
             });
         }

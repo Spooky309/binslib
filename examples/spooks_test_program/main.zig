@@ -11,7 +11,7 @@ pub fn main() !void {
 
     try vfs.init(gpa.allocator());
     defer vfs.deinit();
-    try vfs.mount_directory(gpa.allocator(), "res");
+    try vfs.mount_directory("res");
 
     try snd.init(gpa.allocator());
     defer snd.deinit();
