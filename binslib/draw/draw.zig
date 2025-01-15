@@ -3,6 +3,7 @@ const wnd = @import("../wnd/wnd.zig");
 const gl = @import("gl");
 const stbi = @import("stbi");
 const stbtt = @import("stbtt"); // Also includes stb_rect_pack!
+const math = @import("../math/math.zig");
 
 const vertex_shader_code: [:0]const u8 =
 \\#version 330 core
@@ -12,8 +13,10 @@ const vertex_shader_code: [:0]const u8 =
 \\
 \\out vec2 vUV;
 \\
+\\uniform mat4 uProjection;
+\\
 \\void main() {
-\\    gl_Position = vec4(aPosition, 0.0, 1.0);
+\\    gl_Position = uProjection * vec4(aPosition, 0.0, 1.0);
 \\    vUV = aUV;
 \\}
 ;
@@ -44,8 +47,8 @@ const SpriteAtlas = struct {
 };
 
 const Vertex = struct {
-    position: [2]f32,
-    uv: [2]f32
+    position: math.vec2,
+    uv: math.vec2
 };
 
 const SpriteBuffer = struct {
@@ -137,11 +140,18 @@ pub fn init(allocator: std.mem.Allocator) !void {
     gl.glDeleteShader(vertex_shader);
     gl.glDeleteShader(fragment_shader);
 
-    const rp_nodes: []stbtt.stbrp_node = try allocator.alloc(stbtt.stbrp_node, 2048);
-    defer allocator.free(rp_nodes);
+    const window_size = wnd.get_size();
+    const projection = math.ortho(0, @floatFromInt(window_size[0]), @floatFromInt(window_size[1]), 0, 0, 1);
 
-    var rp_context: stbtt.stbrp_context = undefined;
-    stbtt.stbrp_init_target(&rp_context, 2048, 2048, rp_nodes.ptr, @intCast(rp_nodes.len));
+    gl.glUseProgram(sprite_shader);
+    const projection_matrix_loc = gl.glGetUniformLocation(sprite_shader, "uProjection");
+    gl.glUniformMatrix4fv(projection_matrix_loc, 1, gl.GL_FALSE, &projection.elements[0][0]); //TODO(gonzo): Check if getting a pointer like this is safe.
+    
+    //const rp_nodes: []stbtt.stbrp_node = try allocator.alloc(stbtt.stbrp_node, 2048);
+    //defer allocator.free(rp_nodes);
+
+    //var rp_context: stbtt.stbrp_context = undefined;
+    //stbtt.stbrp_init_target(&rp_context, 2048, 2048, rp_nodes.ptr, @intCast(rp_nodes.len));
 }
 
 pub fn deinit(allocator: std.mem.Allocator) void {
@@ -266,29 +276,55 @@ pub fn load_sprite_from_image(image: Image) Sprite {
     return sprite;
 }
 
-pub fn draw_sprite(sprite: Sprite) void {
+pub fn draw_sprite(sprite: Sprite, position: math.vec2, angle: f32, scale: f32, origin: math.vec2) void {
+    const scaled_width: f32 = @as(f32, @floatFromInt(sprite.width)) * scale;
+    const scaled_height: f32 = @as(f32, @floatFromInt(sprite.height)) * scale;
+
+    var top_left: math.vec2 = .{ .x=-(scaled_width * origin.x), .y=-(scaled_height * origin.y) };
+    var bottom_right: math.vec2 = .{ .x=scaled_width * (1.0 - origin.x), .y=scaled_height * (1.0 - origin.y) };
+    var bottom_left: math.vec2 = .{ .x=top_left.x, .y=bottom_right.y };
+    var top_right: math.vec2 = .{ .x=bottom_right.x, .y=top_left.y };
+
+    if (angle != 0.0) {
+        const rot_sin: f32 = @sin(std.math.degreesToRadians(angle));
+        const rot_cos: f32 = @cos(std.math.degreesToRadians(angle));
+
+        var point: math.vec2 = top_left;
+        top_left = .{ .x=point.x * rot_cos - point.y * rot_sin, .y=point.x * rot_sin + point.y * rot_cos };
+        
+        point = bottom_right;
+        bottom_right = .{ .x=point.x * rot_cos - point.y * rot_sin, .y=point.x * rot_sin + point.y * rot_cos };
+
+        point = bottom_left;
+        bottom_left = .{ .x=point.x * rot_cos - point.y * rot_sin, .y=point.x * rot_sin + point.y * rot_cos };
+
+        point = top_right;
+        top_right = .{ .x=point.x * rot_cos - point.y * rot_sin, .y=point.x * rot_sin + point.y * rot_cos };
+    }
+
+    top_left = top_left.add(position);
+    bottom_right = bottom_right.add(position);
+    bottom_left = bottom_left.add(position);
+    top_right = top_right.add(position);
+
     sprite_buffer.buffer[sprite_buffer.count + 0] = .{
-        .position = .{0.0, -0.5},
-        .uv = .{sprite.rect.x, sprite.rect.y}
-        //.uv = .{0.0, 0.0}
+        .position = bottom_left,
+        .uv = .{.x=sprite.rect.x, .y=sprite.rect.y}
     };
 
     sprite_buffer.buffer[sprite_buffer.count + 1] = .{
-        .position = .{0.5, -0.5},
-        .uv = .{sprite.rect.width, sprite.rect.y}
-        //.uv = .{1.0, 0.0}
+        .position = bottom_right,
+        .uv = .{.x=sprite.rect.width, .y=sprite.rect.y}
     };
 
     sprite_buffer.buffer[sprite_buffer.count + 2] = .{
-        .position = .{0.0, 0.0},
-        .uv = .{sprite.rect.x, sprite.rect.height}
-        //.uv = .{0.0, 1.0}
+        .position = top_left,
+        .uv = .{.x=sprite.rect.x, .y=sprite.rect.height}
     };
 
     sprite_buffer.buffer[sprite_buffer.count + 3] = .{
-        .position = .{0.5, 0.0},
-        .uv = .{sprite.rect.width, sprite.rect.height}
-        //.uv = .{1.0, 1.0}
+        .position = top_right,
+        .uv = .{.x=sprite.rect.width, .y=sprite.rect.height}
     };
 
     sprite_buffer.count += 4;
@@ -296,4 +332,4 @@ pub fn draw_sprite(sprite: Sprite) void {
 
 var sprite_atlas: SpriteAtlas = undefined;
 var sprite_buffer: SpriteBuffer = undefined;
-var sprite_shader: gl.GLuint = 0; 
+var sprite_shader: gl.GLuint = 0;
