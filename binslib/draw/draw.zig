@@ -146,12 +146,6 @@ pub fn init(allocator: std.mem.Allocator) !void {
     gl.glUseProgram(sprite_shader);
     const projection_matrix_loc = gl.glGetUniformLocation(sprite_shader, "uProjection");
     gl.glUniformMatrix4fv(projection_matrix_loc, 1, gl.GL_FALSE, &projection.elements[0][0]); //TODO(gonzo): Check if getting a pointer like this is safe.
-    
-    //const rp_nodes: []stbtt.stbrp_node = try allocator.alloc(stbtt.stbrp_node, 2048);
-    //defer allocator.free(rp_nodes);
-
-    //var rp_context: stbtt.stbrp_context = undefined;
-    //stbtt.stbrp_init_target(&rp_context, 2048, 2048, rp_nodes.ptr, @intCast(rp_nodes.len));
 }
 
 pub fn deinit(allocator: std.mem.Allocator) void {
