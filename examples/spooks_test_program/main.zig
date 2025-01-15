@@ -13,6 +13,12 @@ pub fn main() !void {
     defer vfs.deinit();
     try vfs.mount_directory("res");
 
+    // HTTP mounting expects the endpoint to have a file in the root called "reslist"
+    //   that contains a list of _all_ files served, with their paths relative to the root.
+    //   See the "res" folder in this example for details.
+
+    //try vfs.mount_http(gpa.allocator(), "http://127.0.0.1:8000/");
+
     try snd.init(gpa.allocator());
     defer snd.deinit();
 

@@ -2,6 +2,7 @@ pub const std = @import("std");
 
 pub const Error = error{
     FileNotFound,
+    HTTPError,
 };
 
 pub const File = struct {
@@ -50,9 +51,43 @@ pub fn mount_archive(_: []const u8) !void {
     unreachable;
 }
 
+pub fn mount_http(gpa: std.mem.Allocator, endpoint: []const u8) !void {
+    var client = std.http.Client{ .allocator = gpa };
+    defer client.deinit();
+
+    const reslist_url = try std.fs.path.join(gpa, &.{ endpoint, "reslist" });
+    defer gpa.free(reslist_url);
+
+    var response = std.ArrayList(u8).init(gpa);
+    defer response.deinit();
+
+    const fres = try client.fetch(.{
+        .location = .{ .url = reslist_url },
+        .response_storage = .{ .dynamic = &response },
+    });
+    switch (fres.status) {
+        .ok => {
+            var iterator = std.mem.split(u8, response.items, "\n");
+            while (iterator.next()) |item| {
+                const virtual_path = if (std.mem.lastIndexOf(u8, item, ".")) |idx|
+                    try file_map.allocator.dupe(u8, item[0..idx])
+                else
+                    try file_map.allocator.dupe(u8, item);
+                try file_map.put(virtual_path, .{
+                    .virtual_path = virtual_path,
+                    .extension = try file_map.allocator.dupe(u8, std.fs.path.extension(item)),
+                    .file = .{ .HTTP = .{ .url = try std.fs.path.join(file_map.allocator, &.{ endpoint, item }) } },
+                });
+            }
+        },
+        else => {
+            return error.HTTPError;
+        },
+    }
+}
+
 // Allocates for extension and data, owned by caller.
 pub fn get_file(gpa: std.mem.Allocator, path: []const u8) !File {
-    std.log.info("{s}", .{path});
     if (file_map.get(path)) |file| {
         var f: File = .{
             .data = &.{},
@@ -69,6 +104,19 @@ pub fn get_file(gpa: std.mem.Allocator, path: []const u8) !File {
                 // TODO...
                 unreachable;
             },
+            .HTTP => |httpf| {
+                var client = std.http.Client{ .allocator = gpa };
+                defer client.deinit();
+                var response = std.ArrayList(u8).init(gpa);
+                const fres = try client.fetch(.{
+                    .location = .{ .url = httpf.url },
+                    .response_storage = .{ .dynamic = &response },
+                });
+                if (fres.status != .ok) {
+                    return error.HTTPError;
+                }
+                f.data = response.items;
+            },
         }
 
         return f;
@@ -80,6 +128,7 @@ pub fn get_file(gpa: std.mem.Allocator, path: []const u8) !File {
 const VirtualFileSource = enum {
     LooseFile,
     Archive,
+    HTTP,
 };
 
 // TODO...
@@ -97,7 +146,14 @@ const VirtualFile = struct {
         LooseFile: struct {
             real_path: []u8,
         },
-        Archive: *Archive,
+        Archive: struct {
+            archive: *Archive,
+            offset: u64,
+            size: u64,
+        },
+        HTTP: struct {
+            url: []u8,
+        },
     },
 };
 
