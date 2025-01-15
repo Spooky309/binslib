@@ -18,11 +18,20 @@ pub fn main() !void {
 
     const sprite = draw.load_sprite_from_image(image);
     
+    var angle: f32 = 0;
+
     while (!wnd.wants_close()) {
         wnd.pump();
+
         draw.begin_frame();
-        draw.draw_sprite(sprite);
+        draw.draw_sprite(sprite, .{.x=400, .y=300}, angle * 2.0, 1.0, .{.x=0.5, .y=0.5});
+        draw.draw_sprite(sprite, .{.x=400, .y=300}, angle, 0.25, .{.x=0.0, .y=0.0});
         draw.end_frame();
+
+        angle += 1;
+        if (angle >= 360) {
+            angle = 0;
+        }
 
         // We don't care if this fails.
         _ = temp_allocator.reset(.retain_capacity);
