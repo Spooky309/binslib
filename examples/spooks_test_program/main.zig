@@ -15,7 +15,8 @@ pub fn main() !void {
 
     // HTTP mounting expects the endpoint to have a file in the root called "reslist"
     //   that contains a list of _all_ files served, with their paths relative to the root.
-    //   See the "res" folder in this example for details.
+    //   See the "res" folder in this example for details, although it doesn't have to be a
+    //   static file, it could be served by a CGI script.
 
     //try vfs.mount_http(gpa.allocator(), "http://127.0.0.1:8000/");
 
