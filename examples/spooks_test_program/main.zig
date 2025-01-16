@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const wnd = @import("binslib").wnd;
+const core = @import("binslib").core;
 const draw = @import("binslib").draw;
 const snd = @import("binslib").snd;
 const vfs = @import("binslib").vfs;
@@ -8,6 +8,9 @@ const vfs = @import("binslib").vfs;
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var temp_allocator = std.heap.ArenaAllocator.init(gpa.allocator());
+
+    try core.init(800, 600, "binslib");
+    defer core.deinit();
 
     try vfs.init(gpa.allocator());
     defer vfs.deinit();
@@ -22,9 +25,6 @@ pub fn main() !void {
 
     try snd.init(gpa.allocator());
     defer snd.deinit();
-
-    try wnd.init(800, 600, "binslib");
-    defer wnd.deinit();
 
     try draw.init(gpa.allocator());
     defer draw.deinit(gpa.allocator());
@@ -45,8 +45,8 @@ pub fn main() !void {
     var t: f32 = 0;
     var last_time = std.time.milliTimestamp();
 
-    while (!wnd.wants_close()) {
-        wnd.pump();
+    while (!core.wants_close()) {
+        core.pump();
         draw.begin_frame();
         draw.end_frame();
 

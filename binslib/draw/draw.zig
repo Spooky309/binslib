@@ -1,5 +1,5 @@
 const std = @import("std");
-const wnd = @import("../wnd/wnd.zig");
+const core = @import("../core/core.zig");
 const gl = @import("gl");
 const stbi = @import("stbi");
 const stbtt = @import("stbtt"); // Also includes stb_rect_pack!
@@ -60,7 +60,7 @@ const SpriteBuffer = struct {
 };
 
 pub fn init(allocator: std.mem.Allocator) !void {
-    if (gl.gladLoadGL(wnd.get_proc_address) == 0) {
+    if (gl.gladLoadGL(core.get_proc_address) == 0) {
         return error.GLADLoadFailed;
     }
 
@@ -140,7 +140,7 @@ pub fn init(allocator: std.mem.Allocator) !void {
     gl.glDeleteShader(vertex_shader);
     gl.glDeleteShader(fragment_shader);
 
-    const window_size = wnd.get_size();
+    const window_size = core.get_size();
     const projection = math.ortho(0, @floatFromInt(window_size[0]), @floatFromInt(window_size[1]), 0, 0, 1);
 
     gl.glUseProgram(sprite_shader);
@@ -176,7 +176,7 @@ pub fn end_frame() void {
         gl.glDrawElements(gl.GL_TRIANGLES, @intCast((sprite_buffer.count / 4) * 6), gl.GL_UNSIGNED_SHORT, null);
     }
 
-    wnd.swap_buffers();
+    core.swap_buffers();
 }
 
 const Image = struct {
