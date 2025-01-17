@@ -35,7 +35,11 @@ pub fn wants_close() bool {
 
 pub fn pump() void {
     last_input_state = current_input_state;
-    current_input_state = .{};
+    // Zero out keys_pressed and keys_released
+    current_input_state = .{
+        .keys_held = current_input_state.keys_held,
+        .mouse_pos = current_input_state.mouse_pos,
+    };
     glfw.glfwPollEvents();
 }
 
