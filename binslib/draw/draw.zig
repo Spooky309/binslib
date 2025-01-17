@@ -6,33 +6,33 @@ const stbtt = @import("stbtt"); // Also includes stb_rect_pack!
 const math = @import("../math/math.zig");
 
 const vertex_shader_code: [:0]const u8 =
-\\#version 330 core
-\\
-\\layout(location = 0) in vec2 aPosition;
-\\layout(location = 1) in vec2 aUV;
-\\
-\\out vec2 vUV;
-\\
-\\uniform mat4 uProjection;
-\\
-\\void main() {
-\\    gl_Position = uProjection * vec4(aPosition, 0.0, 1.0);
-\\    vUV = aUV;
-\\}
+    \\#version 330 core
+    \\
+    \\layout(location = 0) in vec2 aPosition;
+    \\layout(location = 1) in vec2 aUV;
+    \\
+    \\out vec2 vUV;
+    \\
+    \\uniform mat4 uProjection;
+    \\
+    \\void main() {
+    \\    gl_Position = uProjection * vec4(aPosition, 0.0, 1.0);
+    \\    vUV = aUV;
+    \\}
 ;
 
 const fragment_shader_code: [:0]const u8 =
-\\#version 330 core
-\\
-\\in vec2 vUV;
-\\
-\\layout(location = 0) out vec4 result;
-\\
-\\uniform sampler2D uAtlas;
-\\
-\\void main() {
-\\    result = texture(uAtlas, vUV);
-\\}
+    \\#version 330 core
+    \\
+    \\in vec2 vUV;
+    \\
+    \\layout(location = 0) out vec4 result;
+    \\
+    \\uniform sampler2D uAtlas;
+    \\
+    \\void main() {
+    \\    result = texture(uAtlas, vUV);
+    \\}
 ;
 
 pub const Error = error{
@@ -168,7 +168,7 @@ pub fn end_frame() void {
     if (sprite_buffer.count > 0) {
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, sprite_buffer.vbo);
         gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, sprite_buffer.count * @sizeOf(Vertex), sprite_buffer.buffer.ptr);
-        
+
         gl.glUseProgram(sprite_shader);
         gl.glBindTexture(gl.GL_TEXTURE_2D, sprite_atlas.id);
 
@@ -183,7 +183,7 @@ const Image = struct {
     width: i32,
     height: i32,
     channels: i32,
-    data: ?[*]u8
+    data: ?[*]u8,
 };
 
 pub fn load_image(path: []const u8, allocator: std.mem.Allocator) !Image {
@@ -191,7 +191,7 @@ pub fn load_image(path: []const u8, allocator: std.mem.Allocator) !Image {
         .width = 0,
         .height = 0,
         .channels = 0,
-        .data = null
+        .data = null,
     };
 
     const file = try std.fs.cwd().openFile(path, .{});
@@ -221,7 +221,7 @@ pub fn unload_image(image: *Image) void {
         .width = 0,
         .height = 0,
         .channels = 0,
-        .data = null
+        .data = null,
     };
 }
 
@@ -229,13 +229,13 @@ const Rect = struct {
     x: f32,
     y: f32,
     width: f32,
-    height: f32
+    height: f32,
 };
 
 const Sprite = struct {
     width: i32,
     height: i32,
-    rect: Rect
+    rect: Rect,
 };
 
 pub fn load_sprite_from_image(image: Image) Sprite {
@@ -249,7 +249,7 @@ pub fn load_sprite_from_image(image: Image) Sprite {
         2 => gl.GL_RG,
         3 => gl.GL_RGB,
         4 => gl.GL_RGBA,
-        else => 0 // TODO(gonzo): Return an error here!
+        else => 0, // TODO(gonzo): Return an error here!
     };
 
     // NOTE(gonzo): We need to set this because otherwise the data is loaded into the texture wrong
@@ -264,7 +264,7 @@ pub fn load_sprite_from_image(image: Image) Sprite {
         .x = 0.0,
         .y = 0.0,
         .width = @as(f32, @floatFromInt(image.width)) / @as(f32, @floatFromInt(sprite_atlas.width)),
-        .height = @as(f32, @floatFromInt(image.height)) / @as(f32, @floatFromInt(sprite_atlas.height))
+        .height = @as(f32, @floatFromInt(image.height)) / @as(f32, @floatFromInt(sprite_atlas.height)),
     };
 
     return sprite;
@@ -274,26 +274,26 @@ pub fn draw_sprite(sprite: Sprite, position: math.vec2, angle: f32, scale: f32, 
     const scaled_width: f32 = @as(f32, @floatFromInt(sprite.width)) * scale;
     const scaled_height: f32 = @as(f32, @floatFromInt(sprite.height)) * scale;
 
-    var top_left: math.vec2 = .{ .x=-(scaled_width * origin.x), .y=-(scaled_height * origin.y) };
-    var bottom_right: math.vec2 = .{ .x=scaled_width * (1.0 - origin.x), .y=scaled_height * (1.0 - origin.y) };
-    var bottom_left: math.vec2 = .{ .x=top_left.x, .y=bottom_right.y };
-    var top_right: math.vec2 = .{ .x=bottom_right.x, .y=top_left.y };
+    var top_left: math.vec2 = .{ .x = -(scaled_width * origin.x), .y = -(scaled_height * origin.y) };
+    var bottom_right: math.vec2 = .{ .x = scaled_width * (1.0 - origin.x), .y = scaled_height * (1.0 - origin.y) };
+    var bottom_left: math.vec2 = .{ .x = top_left.x, .y = bottom_right.y };
+    var top_right: math.vec2 = .{ .x = bottom_right.x, .y = top_left.y };
 
     if (angle != 0.0) {
         const rot_sin: f32 = @sin(std.math.degreesToRadians(angle));
         const rot_cos: f32 = @cos(std.math.degreesToRadians(angle));
 
         var point: math.vec2 = top_left;
-        top_left = .{ .x=point.x * rot_cos - point.y * rot_sin, .y=point.x * rot_sin + point.y * rot_cos };
-        
+        top_left = .{ .x = point.x * rot_cos - point.y * rot_sin, .y = point.x * rot_sin + point.y * rot_cos };
+
         point = bottom_right;
-        bottom_right = .{ .x=point.x * rot_cos - point.y * rot_sin, .y=point.x * rot_sin + point.y * rot_cos };
+        bottom_right = .{ .x = point.x * rot_cos - point.y * rot_sin, .y = point.x * rot_sin + point.y * rot_cos };
 
         point = bottom_left;
-        bottom_left = .{ .x=point.x * rot_cos - point.y * rot_sin, .y=point.x * rot_sin + point.y * rot_cos };
+        bottom_left = .{ .x = point.x * rot_cos - point.y * rot_sin, .y = point.x * rot_sin + point.y * rot_cos };
 
         point = top_right;
-        top_right = .{ .x=point.x * rot_cos - point.y * rot_sin, .y=point.x * rot_sin + point.y * rot_cos };
+        top_right = .{ .x = point.x * rot_cos - point.y * rot_sin, .y = point.x * rot_sin + point.y * rot_cos };
     }
 
     top_left = top_left.add(position);
@@ -303,22 +303,22 @@ pub fn draw_sprite(sprite: Sprite, position: math.vec2, angle: f32, scale: f32, 
 
     sprite_buffer.buffer[sprite_buffer.count + 0] = .{
         .position = bottom_left,
-        .uv = .{.x=sprite.rect.x, .y=sprite.rect.y}
+        .uv = .{ .x = sprite.rect.x, .y = sprite.rect.y },
     };
 
     sprite_buffer.buffer[sprite_buffer.count + 1] = .{
         .position = bottom_right,
-        .uv = .{.x=sprite.rect.width, .y=sprite.rect.y}
+        .uv = .{ .x = sprite.rect.width, .y = sprite.rect.y },
     };
 
     sprite_buffer.buffer[sprite_buffer.count + 2] = .{
         .position = top_left,
-        .uv = .{.x=sprite.rect.x, .y=sprite.rect.height}
+        .uv = .{ .x = sprite.rect.x, .y = sprite.rect.height },
     };
 
     sprite_buffer.buffer[sprite_buffer.count + 3] = .{
         .position = top_right,
-        .uv = .{.x=sprite.rect.width, .y=sprite.rect.height}
+        .uv = .{ .x = sprite.rect.width, .y = sprite.rect.height },
     };
 
     sprite_buffer.count += 4;
