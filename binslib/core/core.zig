@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const glfw = @import("glfw");
 const keys = @import("keys.zig");
 
@@ -49,6 +50,10 @@ pub fn swap_buffers() void {
 
 fn early_init_if_necessary() !void {
     if (!initd) {
+        if (builtin.target.os.tag == .linux and builtin.mode == .Debug) {
+            // We want to force X11 on Linux so renderdoc works.
+            glfw.glfwInitHint(glfw.GLFW_PLATFORM, glfw.GLFW_PLATFORM_X11);
+        }
         if (glfw.glfwInit() == 0) {
             return error.GLFWInitFailure;
         }
