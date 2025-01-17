@@ -37,18 +37,18 @@ const fragment_shader_code: [:0]const u8 =
 
 pub const Error = error{
     GLADLoadFailed,
-    ImageLoadFailed
+    ImageLoadFailed,
 };
 
 const SpriteAtlas = struct {
     id: gl.GLuint,
     width: i32,
-    height: i32
+    height: i32,
 };
 
 const Vertex = struct {
     position: math.vec2,
-    uv: math.vec2
+    uv: math.vec2,
 };
 
 const SpriteBuffer = struct {
@@ -56,7 +56,7 @@ const SpriteBuffer = struct {
     vbo: gl.GLuint,
     ibo: gl.GLuint,
     buffer: []Vertex,
-    count: u32
+    count: u32,
 };
 
 pub fn init(allocator: std.mem.Allocator) !void {
@@ -140,7 +140,7 @@ pub fn init(allocator: std.mem.Allocator) !void {
     gl.glDeleteShader(vertex_shader);
     gl.glDeleteShader(fragment_shader);
 
-    const window_size = core.get_size();
+    const window_size = core.get_window_size();
     const projection = math.ortho(0, @floatFromInt(window_size[0]), @floatFromInt(window_size[1]), 0, 0, 1);
 
     gl.glUseProgram(sprite_shader);

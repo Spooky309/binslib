@@ -45,7 +45,7 @@ fn early_init_if_necessary() !void {
     }
 }
 
-pub fn get_size() struct { i32, i32 } {
+pub fn get_window_size() [2]i32 {
     var width: i32 = 0;
     var height: i32 = 0;
     glfw.glfwGetFramebufferSize(wnd, &width, &height);
